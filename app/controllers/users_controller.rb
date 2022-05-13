@@ -5,6 +5,10 @@ class UsersController < ApplicationController
     render({ :template => "users/index.html" })
   end
 
+  def registration
+    render({ :template => "users/registration"})
+  end
+
   def show
     the_username = params.fetch("the_username")
     @user = User.where({ :username => the_username }).at(0)
@@ -16,10 +20,38 @@ class UsersController < ApplicationController
     user = User.new
 
     user.username = params.fetch("input_username")
+    user.password = params.fetch("input_password")
+    user.password_confirmation = params.fetch("input_password_confirmation")
 
-    user.save
+    if !user.save
+      redirect_to("/user_sign_up", { :alert => user.errors.full_messages.to_sentence})
+    else
+      session.store(:user_id, user.id)
+      redirect_to("/users/#{user.username}", { :notice => "Welcome, " + user.username })
+    end
+  end
 
-    redirect_to("/users/#{user.username}")
+  def logout
+    reset_session
+    redirect_to("/", { :notice => "See ya later!"})
+  end
+
+  def login
+    render({ :template => "users/login"})
+  end
+
+  def authenticate
+    password = params.fetch("input_password")
+    username = params.fetch("input_username")
+    user = User.where({ :username => username }).at(0)
+    if !user
+      redirect_to("/user_sign_in", { :alert => "Incorrect username or password" })
+    elsif user.authenticate(password)
+      session.store(:user_id, user.id)
+      redirect_to("/", { :notice => "Welcome back, " + user.username})
+    else
+      redirect_to("/user_sign_in", { :alert => "Incorrect username or password"})
+    end
   end
 
   def update
